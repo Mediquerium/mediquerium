@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mediquerium Admin</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#0b0b0b; color:#eee; margin:0; }
+  header { padding:16px; background:#111; box-shadow:0 2px 8px rgba(0,0,0,0.4); position:sticky; top:0; }
+  h1 { margin:0; font-size:20px; }
+  .wrap { max-width: 1100px; margin: 20px auto; padding: 0 16px; }
+  .card { background:#161616; border-radius:14px; padding:16px; box-shadow:0 0 20px rgba(255,255,255,0.06); margin-bottom:16px; }
+  label { display:inline-block; margin-right:8px; }
+  input, select, button { padding:8px 10px; border-radius:8px; border:none; margin-right:8px; }
+  input, select { background:#222; color:#fff; }
+  button { background:linear-gradient(135deg,#ff4e50,#f9d423); color:#111; font-weight:bold; cursor:pointer; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
+  th, td { padding:8px; border-bottom:1px solid #2a2a2a; text-align:left; }
+  tr:hover { background:#1d1d1d; }
+  .muted { color:#aaa; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap"><h1>Mediquerium Admin</h1></div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div class="row">
+      <label>Password:</label>
+      <input type="password" id="pwd" placeholder="Enter admin password">
+      <button id="loginBtn">Login</button>
+      <span id="loginStatus" class="muted"></span>
+    </div>
+  </div>
+
+  <div class="card" id="controls" style="display:none;">
+    <div class="row">
+      <label>Date:</label><select id="filterDate"></select>
+      <label>Cohort:</label><select id="filterCohort"><option value="">All</option></select>
+      <button id="refreshBtn">Refresh</button>
+      <button id="csvBtn">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="card" id="tableCard" style="display:none;">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>Timestamp</th><th>Name</th><th>College</th><th>Year</th><th>Contact</th><th>Email</th><th>Food</th><th>Date</th><th>Cohort</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="muted" id="countInfo"></div>
+  </div>
+</div>
+
+<script>
+  const API = { config:"/api/config", data:"/api/admin/data", csv:"/api/admin/csv" };
+  let CONFIG = null; let PWD = "";
+
+  function setVisible(id, show=true){ document.getElementById(id).style.display = show ? 'block' : 'none'; }
+
+  async function loadConfig() {
+    const res = await fetch(API.config); CONFIG = await res.json();
+    const dateSel = document.getElementById('filterDate');
+    dateSel.innerHTML = '<option value="">All</option>' + (CONFIG.allowedDates||[]).map(d=>`<option>${d}</option>`).join('');
+    const cohortSel = document.getElementById('filterCohort');
+    cohortSel.innerHTML = '<option value="">All</option>' + (CONFIG.cohorts||[]).map(c=>`<option>${c}</option>`).join('');
+  }
+
+  async function login() {
+    PWD = document.getElementById('pwd').value;
+    const res = await fetch(API.data, { headers: { 'x-admin-password': PWD }});
+    if (res.status === 401) { document.getElementById('loginStatus').textContent = 'Wrong password'; return; }
+    document.getElementById('loginStatus').textContent = 'Logged in';
+    setVisible('controls', true); setVisible('tableCard', true);
+    const payload = await res.json(); renderTable(payload.registrations||[]);
+  }
+
+  function renderTable(rows) {
+    const dateFilter = document.getElementById('filterDate').value;
+    const cohortFilter = document.getElementById('filterCohort').value;
+    const filtered = rows.filter(r => (!dateFilter || r.date===dateFilter) && (!cohortFilter || r.cohort===cohortFilter));
+    const tbody = document.querySelector('#tbl tbody');
+    tbody.innerHTML = filtered.map(r => `
+      <tr>
+        <td>${r.ts||""}</td><td>${r.name||""}</td><td>${r.college||""}</td><td>${r.year||""}</td>
+        <td>${r.contact||""}</td><td>${r.email||""}</td><td>${r.food||""}</td><td>${r.date||""}</td><td>${r.cohort||""}</td>
+      </tr>`).join('');
+    document.getElementById('countInfo').textContent = `${filtered.length} record(s)`;
+  }
+
+  async function refresh() {
+    const res = await fetch(API.data, { headers:{'x-admin-password':PWD} });
+    const payload = await res.json(); renderTable(payload.registrations||[]);
+  }
+
+  async function exportCSV() {
+    const date = document.getElementById('filterDate').value;
+    const cohort = document.getElementById('filterCohort').value;
+    const q = new URLSearchParams(); if (date) q.set('date', date); if (cohort) q.set('cohort', cohort);
+    const res = await fetch(API.csv + '?' + q.toString(), { headers:{'x-admin-password':PWD} });
+    const blob = await res.blob(); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'registrations.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', login);
+  document.getElementById('refreshBtn').addEventListener('click', refresh);
+  document.getElementById('csvBtn').addEventListener('click', exportCSV);
+  window.addEventListener('load', loadConfig);
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "registrations": [
+    {
+      "ts": "2025-08-16T07:42:59.096Z",
+      "name": "Aryaman Saha",
+      "college": "NRS",
+      "year": "2nd",
+      "contact": "9007891449",
+      "email": "anup.obiee@gmail.com",
+      "food": "Yes",
+      "date": "2025-08-22",
+      "cohort": "Beta"
+    },
+    {
+      "ts": "2025-08-16T08:10:40.913Z",
+      "name": "Ayushman Saha",
+      "college": "NRS",
+      "year": "3rd",
+      "contact": "9078654321",
+      "email": "anupgames1845@gmail.com",
+      "food": "No",
+      "date": "2025-08-22",
+      "cohort": "Gamma"
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Mediquerium 2025 Registration</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  body { font-family: Arial, sans-serif; background: black; margin: 0; padding: 0; color: white; overflow-x: hidden; }
+  .container { max-width: 600px; margin: 50px auto; background: rgba(20,20,20,0.85); padding: 20px; border-radius: 15px; box-shadow: 0 0 25px rgba(255,255,255,0.1); animation: fadeIn 1s ease-in; position: relative; z-index: 2; }
+  h1, h2, h3, p, label { text-align: center; color: #fff; text-shadow: 0 0 10px #f9d423, 0 0 20px #ff4e50; animation: glowText 2s infinite alternate; }
+  label { font-weight: bold; display:block; margin-top:10px; }
+  input, select, button { width: 100%; padding: 10px; margin-top: 6px; border: none; border-radius: 8px; outline: none; }
+  input, select { background: #222; color: white; text-shadow: 0 0 5px #00ffe5; }
+  button { background: linear-gradient(135deg, #ff4e50, #f9d423); color: black; cursor: pointer; font-weight: bold; margin-top: 16px; box-shadow: 0 0 15px rgba(255, 78, 80, 0.6); transition: transform 0.2s, box-shadow 0.2s; }
+  button:hover { transform: scale(1.05); box-shadow: 0 0 25px rgba(249, 212, 35, 0.8); }
+  @keyframes glowText { from { text-shadow: 0 0 5px #ff4e50, 0 0 10px #f9d423; } to { text-shadow: 0 0 15px #f9d423, 0 0 30px #ff4e50; } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .spark { position: absolute; width: 4px; height: 4px; background: #fff176; border-radius: 50%; box-shadow: 0 0 10px #f9d423, 0 0 20px #ff4e50; animation: floatSpark 8s linear infinite; }
+  @keyframes floatSpark { 0% { transform: translateY(100vh) scale(0.5); opacity: 0.7; } 50% { opacity: 1; } 100% { transform: translateY(-10vh) scale(1); opacity: 0; } }
+  .sublist { font-size: 14px; color: #bbb; margin: 5px 0 15px 20px; }
+  .inline { display:flex; align-items:center; gap:8px; margin-top:8px; }
+  .muted { color:#bbb; font-weight: normal; text-shadow:none; animation:none; }
+  .disabled { opacity:0.5; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<div id="sparks"></div>
+
+<div id="welcome" style="display:flex; justify-content:center; align-items:center; height:100vh; background:black; position:relative; z-index:2;">
+  <img src="Image.jpg" alt="Mediquerium 2025 Poster" style="max-width:90%; max-height:90vh; border-radius:20px;">
+</div>
+
+<div class="container" id="form1" style="display:none;">
+  <h2>Participant's Details</h2>
+  <label>Full Name:</label><input type="text" id="name" required>
+  <label>College:</label><input type="text" id="college" required>
+  <label>Course MBBS Year:</label>
+  <select id="year" required>
+    <option value="">Select</option><option>1st</option><option>2nd</option><option>3rd</option><option>Final</option><option>Intern</option><option>Resident</option>
+  </select>
+  <label>Contact Number:</label><input type="text" id="contact" maxlength="10" required>
+  <label>Email ID:</label><input type="email" id="email" required>
+  <label>Food Preference (Yes/No):</label>
+  <select id="food" required><option value="">Select</option><option>Yes</option><option>No</option></select>
+  <label>Select Date:</label><input type="date" id="calendar" required>
+  <div class="muted" id="allowedDatesText" style="margin-top:6px;"></div>
+  <button id="nextBtn">Next</button>
+</div>
+
+<div class="container" id="form2" style="display:none;">
+  <h2>Select Cohort</h2>
+  <p class="muted" id="limitsText"></p>
+  <label class="inline"><input type="radio" name="cohort" value="Alpha"> <span>Alpha</span> <span class="muted">(<span id="AlphaSlots">10</span> left)</span></label>
+  <div class="sublist">Forensic Medicine and Toxicology, Surgery, CMRI, Radiology</div>
+  <label class="inline"><input type="radio" name="cohort" value="Beta"> <span>Beta</span> <span class="muted">(<span id="BetaSlots">10</span> left)</span></label>
+  <div class="sublist">Ophthalmology, OBS and Gynae, Orthopaedics</div>
+  <label class="inline"><input type="radio" name="cohort" value="Gamma"> <span>Gamma</span> <span class="muted">(<span id="GammaSlots">10</span> left)</span></label>
+  <div class="sublist">RTPCR, Oncology, SEMI</div>
+  <button id="confirmBtn">Confirm</button>
+  <div id="slotWarning" class="muted" style="margin-top:10px;"></div>
+</div>
+
+<div class="container" id="confirm" style="display:none;">
+  <h2>Registration Confirmed!</h2>
+  <p>Please send a screenshot and make your payment to:</p>
+  <h3 style="text-align:center; color:#f9d423; text-shadow:0 0 10px #f9d423;">Abhishek Mandal<br>Ph No-9382704936</h3>
+</div>
+
+<script>
+  let CONFIG = null;
+  const API = {
+    config: "/api/config",
+    slots: (date) => `/api/slots?date=${encodeURIComponent(date)}`,
+    register: "/api/register",
+    reset: "/api/reset"
+  };
+
+  setTimeout(() => {
+    document.getElementById('welcome').style.display = 'none';
+    document.getElementById('form1').style.display = 'block';
+  }, 2000);
+
+  (function createSparks() {
+    const c = document.getElementById("sparks");
+    for (let i = 0; i < 40; i++) {
+      let s = document.createElement("div");
+      s.classList.add("spark");
+      s.style.left = Math.random() * 100 + "vw";
+      s.style.animationDuration = (6 + Math.random() * 5) + "s";
+      s.style.opacity = Math.random();
+      c.appendChild(s);
+    }
+  })();
+
+  document.getElementById('nextBtn').addEventListener('click', goToCohort);
+  document.getElementById('confirmBtn').addEventListener('click', confirmRegistration);
+
+  function validPhone(p) { return /^\d{10}$/.test((p||"").trim()); }
+  function show(elId, on=true){ document.getElementById(elId).style.display = on ? 'block':'none'; }
+
+  async function initConfig() {
+    const res = await fetch(API.config);
+    CONFIG = await res.json();
+    const allowedDates = CONFIG.allowedDates || [];
+    const min = allowedDates[0];
+    const max = allowedDates[allowedDates.length - 1];
+    const calendar = document.getElementById('calendar');
+    if (min) calendar.min = min;
+    if (max) calendar.max = max;
+    document.getElementById('allowedDatesText').textContent = allowedDates.length ? ("Allowed dates: " + allowedDates.join(", ")) : "";
+    document.getElementById('limitsText').textContent = `Each cohort has ${CONFIG.perCohortLimit} slots per day, total ${CONFIG.perDayLimit}/day`;
+    calendar.addEventListener('change', () => { if (calendar.value) fetchSlots(calendar.value); });
+  }
+
+  async function goToCohort() {
+    const calendar = document.getElementById('calendar');
+    if (!validPhone(document.getElementById('contact').value)) { alert("Contact number must be exactly 10 digits."); return; }
+    if (!calendar.value) { alert("Please select a date."); return; }
+    if (CONFIG && Array.isArray(CONFIG.allowedDates) && !CONFIG.allowedDates.includes(calendar.value)) { alert("Selected date is not allowed."); return; }
+    await fetchSlots(calendar.value);
+    show('form1', false); show('form2', true);
+  }
+
+  function setCohortSlots(counts, totalRemaining) {
+    (CONFIG.cohorts || ["Alpha","Beta","Gamma"]).forEach(c => {
+      const used = (counts && counts[c]) ? counts[c] : 0;
+      const left = Math.max(0, CONFIG.perCohortLimit - used);
+      const el = document.getElementById(c + "Slots");
+      if (el) el.innerText = left;
+      const radio = document.querySelector(`input[name="cohort"][value="${c}"]`);
+      if (radio) radio.disabled = left <= 0;
+    });
+    const warn = document.getElementById('slotWarning');
+    warn.textContent = (totalRemaining <= 0) ? "All slots are booked for this date." : "";
+    document.getElementById('confirmBtn').classList.toggle('disabled', totalRemaining <= 0);
+  }
+
+  async function fetchSlots(isoDate) {
+    try {
+      const res = await fetch(API.slots(isoDate));
+      const data = await res.json();
+      if (data && data.ok) setCohortSlots(data.counts, data.totalRemaining);
+    } catch (e) { alert("Could not fetch slots from server."); }
+  }
+
+  async function confirmRegistration() {
+    const chosen = document.querySelector('input[name="cohort"]:checked');
+    if (!chosen) { alert("Please select a cohort."); return; }
+    const left = parseInt(document.getElementById(chosen.value + "Slots").innerText || "0", 10);
+    if (left <= 0) { alert(`No slots left for ${chosen.value}. Please choose another.`); return; }
+    const calendar = document.getElementById('calendar');
+    const payload = {
+      name: document.getElementById('name').value?.trim(),
+      college: document.getElementById('college').value?.trim(),
+      year: document.getElementById('year').value,
+      contact: document.getElementById('contact').value?.trim(),
+      email: document.getElementById('email').value?.trim(),
+      food: document.getElementById('food').value,
+      date: calendar.value,
+      cohort: chosen.value
+    };
+    try {
+      const res = await fetch(API.register, { method: "POST", headers: { "Content-Type": "application/json", "Accept":"application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (data.success) { show('form2', false); show('confirm', true); }
+      else { alert(data.message || "Booking failed."); if (payload.date) fetchSlots(payload.date); }
+    } catch (err) { alert("Error connecting to server. Please try again."); }
+  }
+
+  initConfig();
+</script>
+</body>
+</html>

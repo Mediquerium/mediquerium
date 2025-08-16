@@ -1,0 +1,22 @@
+{
+  "allowedDates": [
+    "2025-08-22",
+    "2025-08-23",
+    "2025-08-24"
+  ],
+  "perDayLimit": 30,
+  "perCohortLimit": 10,
+  "cohorts": [
+    "Alpha",
+    "Beta",
+    "Gamma"
+  ],
+  "adminPassword": "supersecret",
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "secure": false,
+    "user": "youraddress@gmail.com",
+    "pass": "your-app-password"
+  }
+}
